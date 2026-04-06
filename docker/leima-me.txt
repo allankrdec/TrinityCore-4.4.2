@@ -1,0 +1,8 @@
+Primeira execução pode demorar, pois estará aplicando updates, gerando os bancos. 
+
+Para acessar o prompt do worldserver
+
+docker attach trinity-world
+
+para sair
+ctrl+p+q

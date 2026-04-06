@@ -1,0 +1,75 @@
+version: "3.9"
+
+services:
+  db:
+    image: mysql:8.0
+    container_name: trinity-4.4.2-db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: trinity
+    command: --default-authentication-plugin=mysql_native_password
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./db-init:/docker-entrypoint-initdb.d
+    ports:
+      - "3306:3306"
+
+  trinity-build:
+    build: .
+    image: trinitycore:4.4.2
+
+  authserver:
+    image: trinitycore:4.4.2
+    container_name: trinity-4.4.4-auth
+    depends_on:
+      - db
+    restart: always
+    volumes:
+      - ${PWD}/etc:/app/etc
+      - ${PWD}/data:/app/data
+    working_dir: /app
+    command:
+      - sh
+      - -c
+      - |
+        until mysql -h trinity-4.4.2-db -u root -ptrinity -e "SELECT 1" >/dev/null 2>&1; do
+          sleep 2
+        done
+        ./bin/authserver
+
+    # command: ["./bin/authserver"]
+    #command: ["sleep", "infinity"]
+    ports:
+      - "3724:3724"
+
+  worldserver:
+    image: trinitycore:4.4.2
+    container_name: trinity-world-4.4.2
+    depends_on:
+      - db
+      - authserver
+    restart: always
+    volumes:
+      - ${PWD}/etc:/app/etc
+      - ${PWD}/data:/app/data
+    working_dir: /app
+    
+    stdin_open: true
+    tty: true
+
+    command:
+      - sh
+      - -c
+      - |
+        until mysql -h trinity-4.4.2-db -u root -ptrinity -e "SELECT 1" >/dev/null 2>&1; do
+          sleep 2
+        done
+        ./bin/worldserver
+
+    # command: ["./bin/worldserver"]
+    #command: ["sleep", "infinity"]
+    ports:
+      - "8085:8085"
+
+volumes:
+  db_data:
